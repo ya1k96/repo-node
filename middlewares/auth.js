@@ -21,9 +21,9 @@ let verificaToken = ( req, res, next ) => {
     jwt.verify(token, 'secret', (err, decoded) => {
 
         if( err ){
-            res.status(401).json({
+            return res.status(401).json({
                 ok: false,
-                err
+                message: 'Token no valido'
             })
         }
 
@@ -70,4 +70,29 @@ async function verify( token ) {
   }
 }
 
-module.exports = { verificaToken, adminRole, verify };
+let verificaTokenImg = ( req, res, next ) => {
+  let token = req.query.token;
+  if( !token ){
+      return res.status(400).json({
+          ok:false,
+          error: {
+              message: 'Es necesario ingresar un token.'
+          }
+      })
+  }
+
+  jwt.verify(token, 'secret', ( err, decoded ) => {
+
+      if( err ){
+          return res.status(401).json({
+              ok: false,
+              message: 'Token no valido.'
+          })
+      }
+
+      req.push({ usuario: decoded.usuario});
+      next();
+  });
+}
+
+module.exports = { verificaToken, adminRole, verify, verificaTokenImg };
