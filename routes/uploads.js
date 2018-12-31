@@ -14,8 +14,8 @@ let borrarArchivo = ( nombreImagen, tipo ) => {
     fs.unlinkSync( pathImagen );
   }
 }
-let imagenUsuario = ( id, res, nombreFinal ) => {
-  Usuario.findOne({ _id: id })
+let usuario = ( id, res, nombreFinal, archivo ) => {
+  Usuario.findById({ _id: id })
     .exec( ( err, usuarioDB ) => {
     if( err ){
       borrarArchivo( nombreFinal, 'usuario' );
@@ -31,10 +31,48 @@ let imagenUsuario = ( id, res, nombreFinal ) => {
 
     usuarioDB.img = nombreFinal;
     usuarioDB.save( ( err, usuarioGuardado ) => {
-      if( err )
+      if( err ){
         return res.status( 400 ).json({ ok: false, err })
+      }
+
+      archivo.mv( `uploads/usuario/${ nombreFinal }`, ( err ) => {
+        if ( err ){
+          return res.status( 500 ).json({ ok:false, err } );
+        }
+
+      });
 
       res.json({ ok: true, usuarioGuardado, img: nombreFinal });
+    })
+  });
+}
+let producto = ( id, res, nombreFinal, archivo ) => {
+  Producto.findOne({ _id: id })
+    .exec( ( err, productoDB ) => {
+    if( err ){
+      borrarArchivo( nombreFinal, 'producto' );
+      return res.status( 500 ).json({ ok: false, err })
+    }
+
+    if( !productoDB ){
+      borrarArchivo( nombreFinal, 'producto' );
+      return res.json({ ok: true, response: 'Producto sin coincidencias' })
+    }
+
+    borrarArchivo( productoDB.img, 'producto' );
+
+    productoDB.img = nombreFinal;
+    productoDB.save( ( err, productoGuardado ) => {
+      if( err ){
+        return res.status( 400 ).json({ ok: false, err })
+      }
+
+      archivo.mv( `uploads/producto/${ nombreFinal }`, ( err ) => {
+        if ( err ){
+          return res.status( 500 ).json({ ok:false, err } );
+        }
+      });
+      res.json({ ok: true, productoGuardado, img: nombreFinal });
     })
   });
 }
@@ -72,13 +110,12 @@ app.put( '/upload/:tipo/:id', ( req, res ) => {
   }
 
   let nombreFinal = `${nombreArchivo[ 0 ]}-${ id }.${extension}`;
-  archivo.mv( `uploads/${ tipo }/${ nombreFinal }`, ( err ) => {
-    if ( err ){
-      return res.status( 500 ).json({ ok:false, err } );
-    }
 
-      imagenUsuario( id, res, nombreFinal);
-  });
+  if( tipo == 'usuario' ){
+    usuario( id, res, nombreFinal, archivo );
+  }else{
+    producto( id, res, nombreFinal, archivo );
+  }
 })
 
 module.exports = app;
