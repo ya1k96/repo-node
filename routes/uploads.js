@@ -51,17 +51,17 @@ app.put( '/upload/:tipo/:id', ( req, res ) => {
 })
 
 let imagenUsuario = ( id, res, nombreFinal ) => {
-  Usuario.findById( id, ( err, usuarioDB ) => {
+  Usuario.findOne({ _id: id })
+    .exec( ( err, usuarioDB ) => {
     if( err )
       return res.status( 500 ).json({ ok: false, err })
+      borrarArchivo( nombreFinal, 'usuarios' );
 
     if( !usuarioDB )
       res.json({ ok: true, response: 'Usuario sin coincidencias' })
+      borrarArchivo( nombreFinal, 'usuarios' );
 
-    let pathImagen = path.resolve( __dirname + `../uploads/usuarios/${ usuarioDB.img }` );
-    if( fs.existsSync( pathImagen ) ) {
-      fs.unlinkSync( pathImagen );
-    }
+    borrarArchivo( usuarioDB.img, 'usuarios' );
 
     usuarioDB.img = nombreFinal;
     usuarioDB.save( ( err, usuarioGuardado ) => {
@@ -72,5 +72,10 @@ let imagenUsuario = ( id, res, nombreFinal ) => {
     })
   });
 }
-
+let borrarArchivo = ( nombreImagen, tipo ) => {
+  let pathImagen = path.resolve( __dirname + `../uploads/${ tipo }/${ nombreImagen }` );
+  if( fs.existsSync( pathImagen ) ) {
+    fs.unlinkSync( pathImagen );
+  }
+}
 module.exports = app;
