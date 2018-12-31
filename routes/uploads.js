@@ -8,6 +8,36 @@ const fs = require('fs');
 
 app.use(fileUpload());
 
+let borrarArchivo = ( nombreImagen, tipo ) => {
+  let pathImagen = path.resolve( __dirname + `../../uploads/${ tipo }/${ nombreImagen }` );
+  if( fs.existsSync( pathImagen ) ) {
+    fs.unlinkSync( pathImagen );
+  }
+}
+let imagenUsuario = ( id, res, nombreFinal ) => {
+  Usuario.findOne({ _id: id })
+    .exec( ( err, usuarioDB ) => {
+    if( err ){
+      borrarArchivo( nombreFinal, 'usuario' );
+      return res.status( 500 ).json({ ok: false, err })
+    }
+
+    if( !usuarioDB ){
+      borrarArchivo( nombreFinal, 'usuario' );
+      return res.json({ ok: true, response: 'Usuario sin coincidencias' })
+    }
+
+    borrarArchivo( usuarioDB.img, 'usuario' );
+
+    usuarioDB.img = nombreFinal;
+    usuarioDB.save( ( err, usuarioGuardado ) => {
+      if( err )
+        return res.status( 400 ).json({ ok: false, err })
+
+      res.json({ ok: true, usuarioGuardado, img: nombreFinal });
+    })
+  });
+}
 app.put( '/upload/:tipo/:id', ( req, res ) => {
   let tipo = req.params.tipo;
   let id = req.params.id;
@@ -43,39 +73,12 @@ app.put( '/upload/:tipo/:id', ( req, res ) => {
 
   let nombreFinal = `${nombreArchivo[ 0 ]}-${ id }.${extension}`;
   archivo.mv( `uploads/${ tipo }/${ nombreFinal }`, ( err ) => {
-    if ( err )
+    if ( err ){
       return res.status( 500 ).json({ ok:false, err } );
+    }
 
       imagenUsuario( id, res, nombreFinal);
   });
 })
 
-let imagenUsuario = ( id, res, nombreFinal ) => {
-  Usuario.findOne({ _id: id })
-    .exec( ( err, usuarioDB ) => {
-    if( err )
-      return res.status( 500 ).json({ ok: false, err })
-      borrarArchivo( nombreFinal, 'usuarios' );
-
-    if( !usuarioDB )
-      res.json({ ok: true, response: 'Usuario sin coincidencias' })
-      borrarArchivo( nombreFinal, 'usuarios' );
-
-    borrarArchivo( usuarioDB.img, 'usuarios' );
-
-    usuarioDB.img = nombreFinal;
-    usuarioDB.save( ( err, usuarioGuardado ) => {
-      if( err )
-        return res.status( 400 ).json({ ok: false, err })
-
-      res.json({ ok: true, usuarioGuardado, img: nombreFinal });
-    })
-  });
-}
-let borrarArchivo = ( nombreImagen, tipo ) => {
-  let pathImagen = path.resolve( __dirname + `../uploads/${ tipo }/${ nombreImagen }` );
-  if( fs.existsSync( pathImagen ) ) {
-    fs.unlinkSync( pathImagen );
-  }
-}
 module.exports = app;
